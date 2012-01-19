@@ -7,7 +7,7 @@ function time_out($i){
 }
 
 function depart($a){
-	return time_out($a["departue_time"]);
+	return time_out($a["departure_time"]);
 }
 
 class margarita_controller extends frontend_controller{
@@ -18,27 +18,32 @@ class margarita_controller extends frontend_controller{
 	
 	function index(){
 		$g=new datagrid_library();
-		$g->label="Spoje";
-		$g->source('trips');
-		$g->column('{trip_short_name} ({trip_headsign})','Číslo vlaku')->url('margarita/con/{trip_id}');
+		$g->label="Linky";
+		$g->source('SELECT * FROM routes ORDER BY route_short_name');
+		$g->column('<span style="color: #{route_text_color}; background-color: #{route_color};">{route_short_name}</span>','Číslo linky');
+		$g->column('{route_long_name}','Jméno linky');
+		$g->column('spoje','')->url('margarita/route/{route_id}');;
 		$g->build();
 		$h=new datagrid_library();
-		$h->source('stops');
+		$h->source('SELECT * FROM stops ORDER BY stop_name ASC');
+		$h->per_page=25;
 		$h->label="Zastávky";
-		$h->column('stop_name','Zastávka')->url('margarita/odjezdy/{stop_id}');
+		$h->column('stop_name','Zastávka');
+		$h->column('<a href="http://www.openstreetmap.org/?mlat={stop_lat}&mlon={stop_lon}&zoom=15&layers=T">mapa</a>','');
+		$h->column('odjezdy','')->url('margarita/odjezdy/{stop_id}');
 		$h->build();
-		$data["text"]=$g->output." ".$h->output;
+		$data["text"]=$this->anchor("margarita/search","hledání")." ".$g->output." ".$h->output;
 		echo $this->view("timetable",$data);
 	}
 	
-	function con($no=1){
+	function trip($no=1){
 		$this->db->select("*")->from("trips")->where('trip_id',$no)->get();
 		$info=$this->db->row_array();
 		$g=new datagrid_library();
 		$g->db->select("*")->from('stop_times')->join('stops','stops.stop_id=stop_times.stop_id')->orderby('stop_sequence','ASC')->where('trip_id',$no);
 		$g->label=$info["trip_short_name"];
 		$g->column('stop_name','');
-		$g->column('departue_time','')->callback('depart');
+		$g->column('departure_time','')->callback('depart');
 		$g->build();
 		$data["text"]=$g->output;
 		
@@ -47,10 +52,21 @@ class margarita_controller extends frontend_controller{
 	
 	function odjezdy($z=1){
 		$g=new datagrid_library();
-		$g->db->select("*")->from('stop_times')->join('trips','stop_times.trip_id=trips.trip_id')->orderby('departue_time','ASC')->where('stop_id',$z);
+		$g->db->select("*")->from('stop_times')->join('trips','stop_times.trip_id=trips.trip_id')->where('stop_id',$z);
 		$g->column('trip_short_name','Č. vlaku');
-		$g->column('departue_time','Čas odjezdu')->callback('depart');
+		$g->column('departure_time','Čas odjezdu')->callback('depart');
 		$g->column('trip_headsign','Směr');
+		$g->build();
+		$data["text"]=$g->output;
+		
+		echo $this->view("timetable",$data);
+	}
+	
+	function route($z=1){
+		$g=new datagrid_library();
+		$g->db->select("*")->from('trips')->join('stop_times','stop_times.trip_id=trips.trip_id')->orderby('stop_sequence')->where('route_id',$z);
+		$g->column('{trip_headsign}','Směr');
+		$g->column('jř','')->url('margarita/trip/{trip_id}');
 		$g->build();
 		$data["text"]=$g->output;
 		
@@ -82,7 +98,7 @@ class margarita_controller extends frontend_controller{
               $g->source($ret);
               $g->column('trip_id','Číslo spoje')->url("margarita/con/{trip_id}");
               $g->column('stop_id','Zastávka');
-              $g->column('departue_time','Odjezd');
+              $g->column('departure_time','Odjezd');
               $g->build();
               $output=$g->output;
             }else{

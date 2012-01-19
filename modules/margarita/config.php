@@ -3,7 +3,7 @@
 
 $module = array();
 $module['name'] = 'margarita';
-$module['frontend_tab']='margarita';
+$module['frontend_tab']='margarita/index';
 //$module['admin_tab'] = 'meredith';
 $module['assets_path'] = RAPYD_PATH.'modules/margarita/assets/';
 

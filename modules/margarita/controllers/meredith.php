@@ -59,10 +59,11 @@ class meredith_controller extends frontend_controller{
 	
 	function stops(){
 		$g=new datagrid_library();
-		$g->source('stops');
+		$g->source('SELECT * FROM stops ORDER BY stop_name ASC');
 		$g->column('stop_name','Jméno');
-		$g->column('upravit','','')->url('meredith/stop/modify/{stop_id}');
-		$g->column('smazat','','')->url('meredith/stop/do_delete/{stop_id}');
+		$g->column('<a href="http://www.openstreetmap.org/?mlat={stop_lat}&mlon={stop_lon}&zoom=15&layers=T">mapa</a>','');
+		$g->column('upravit','')->url('meredith/stop/modify/{stop_id}');
+		$g->column('smazat','')->url('meredith/stop/do_delete/{stop_id}');
 		$g->build();
 		$data["text"]=$g->output." ".$this->anchor("meredith/stop/create/1","Přidat zastávku");
 		echo $this->view('timetable',$data);
@@ -84,7 +85,7 @@ class meredith_controller extends frontend_controller{
 	
 	function routes(){
 		$g=new datagrid_library();
-		$g->source('routes');
+		$g->source('SELECT * FROM routes ORDER BY route_short_name');
 		$g->column('route_short_name','Kód');
 		$g->column('route_long_name','Název linky');
 		$g->column('upravit','','')->url('meredith/route/modify/{route_id}');
@@ -99,7 +100,7 @@ class meredith_controller extends frontend_controller{
 		$e->source('trips');
 		$e->back_url = $this->url('meredith/trips');
 		$e->field('input','trip_short_name','(Číslo vlaku)');
-		$e->field('dropdown','route_id','Linka')->options("SELECT route_id,route_short_name FROM routes");
+		$e->field('dropdown','route_id','Linka',true)->options(array(1=>"1",2=>"B"));//->options("SELECT route_id,route_short_name FROM routes");
 		$e->field('input','trip_headsign','Směrovka');
 		$e->buttons('modify','save','undo','back');
 		$e->build();
@@ -108,13 +109,19 @@ class meredith_controller extends frontend_controller{
 	}
 	
 	function trips(){
+		$f=new datafilter_library();
+		$f->db->select("*")->from('trips');
+		$f->field('dropdown','route_id','Linka')->options('SELECT route_id,route_short_name FROM routes ORDER BY route_short_name');
+		$f->buttons('reset','search');
+		$f->build();
+		
 		$g=new datagrid_library();
-		$g->source('trips');
+		$g->source($f);
 		$g->column('{trip_short_name} ({trip_headsign})','Kód spoje');
 		$g->column('upravit','','')->url('meredith/trip/modify/{trip_id}');
 		$g->column('smazat','','')->url('meredith/trip/do_delete/{trip_id}');
 		$g->build();
-		$data["text"]=$g->output." ".$this->anchor("meredith/trip/create/1","Přidat spoj");
+		$data["text"]=$f->output." ".$g->output." ".$this->anchor("meredith/trip/create/1","Přidat spoj");
 		echo $this->view('timetable',$data);
 	}
 	
@@ -124,7 +131,7 @@ class meredith_controller extends frontend_controller{
 		$e->back_url = $this->url('meredith/stop_times');
 		$e->field('dropdown','trip_id','(Číslo vlaku)')->options("SELECT trip_id, ifnull(trip_short_name,trip_id) FROM trips");
 		$e->field('tine','arrival_time','Příjezd');
-		$e->field('tine','departue_time','Odjezd');
+		$e->field('tine','departure_time','Odjezd');
 		$e->field('dropdown','stop_id','Zastávka')->options("SELECT stop_id,stop_name FROM stops");
 		$e->field('input','stop_sequence','Pořadí')->rule('required');
 		$e->buttons('modify','save','undo','back');
@@ -140,12 +147,14 @@ class meredith_controller extends frontend_controller{
 		$g->column('trip_id','Kód spoje');
 		$g->column('stop_name','Zastávka');
 		//$g->column('arrival_time','Příjezd','arrival_time');
-		$g->column('departue_time','Odjezd','departue_time');
+		$g->column('departure_time','Odjezd','departure_time');
 		$g->column('upravit','','')->url('meredith/stop_time/modify/{stop_times_id}');
 		$g->column('smazat','','')->url('meredith/stop_time/do_delete/{stop_times_id}');
 		$g->build();
 		$data["text"]=$g->output." ".$this->anchor("meredith/stop_time/create/1","Přidat zastavení");
 		echo $this->view('timetable',$data);
 	}
+	
+	
 	
 }
