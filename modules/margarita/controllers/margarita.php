@@ -44,7 +44,8 @@ class margarita_controller extends frontend_controller{
 		$g->label=$info["trip_short_name"];
 		$g->column('stop_name','');
 		$g->column('departure_time','')->callback('depart');
-		$g->build();
+		$g->per_page=100;
+    $g->build();
 		$data["text"]=$g->output;
 		
 		echo $this->view("timetable",$data);
@@ -53,10 +54,11 @@ class margarita_controller extends frontend_controller{
 	function odjezdy($z=1){
 		$g=new datagrid_library();
 		$g->db->select("*")->from('stop_times')->join('trips','stop_times.trip_id=trips.trip_id')->where('stop_id',$z);
-		$g->column('trip_short_name','Č. vlaku');
-		$g->column('departure_time','Čas odjezdu')->callback('depart');
+		$g->column('trip_short_name','Č. vlaku')->url('margarita/trip/{trip_id}');
+		$g->column('departure_time','Čas odjezdu','departure_time')->callback('depart');
 		$g->column('trip_headsign','Směr');
-		$g->build();
+		$g->per_page=50;
+    $g->build();
 		$data["text"]=$g->output;
 		
 		echo $this->view("timetable",$data);
@@ -67,7 +69,8 @@ class margarita_controller extends frontend_controller{
 		$g->db->select("*")->from('trips')->join('stop_times','stop_times.trip_id=trips.trip_id')->orderby('stop_sequence')->where('route_id',$z);
 		$g->column('{trip_headsign}','Směr');
 		$g->column('jř','')->url('margarita/trip/{trip_id}');
-		$g->build();
+    $g->per_page=100;
+    $g->build();
 		$data["text"]=$g->output;
 		
 		echo $this->view("timetable",$data);
@@ -96,7 +99,7 @@ class margarita_controller extends frontend_controller{
             if ($ret){
               $g=new datagrid_library();
               $g->source($ret);
-              $g->column('trip_id','Číslo spoje')->url("margarita/con/{trip_id}");
+              $g->column('trip_id','Číslo spoje')->url("margarita/trip/{trip_id}");
               $g->column('stop_id','Zastávka');
               $g->column('departure_time','Odjezd');
               $g->build();
@@ -104,6 +107,7 @@ class margarita_controller extends frontend_controller{
             }else{
               $output="Nenalezeno žádné spojení.<br>";
             }
+            $output.=$m->logtext;
         }
         
         $data['text']=$output.$this->anchor("margarita/search","Nové hledání");

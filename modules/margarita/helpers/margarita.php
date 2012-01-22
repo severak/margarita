@@ -2,15 +2,21 @@
 class margarita_helper{
   public $limit=5;
   public $grandmas=0;
+  public $debug=true;
+  public $logtext="";
+  
+  function lag($text){
+    $this->logtext.=$text."<br>";
+  }
   
   function find_route($from,$to,$time){
     rpd::$db->select("*")->from('stop_times')->where('stop_id',$from)->where('departure_time>',$time)->orderby('departure_time','ASC')->get();
     $r=rpd::$db->result_array();
+    $this->lag("from: ".$from." to:".$to." time:".$time);
     if ($r){
       foreach ($r as $v){
         $outp=$this->grandma(array($v['trip_id']),array($v['stop_id']),array($v['departure_time']),$to);
         if ($outp){
-          //echo "Babek:".$this->grandmas;
           return $outp;
           break;
         }
@@ -22,6 +28,7 @@ class margarita_helper{
   
   function grandma($trains,$stops,$times,$goal){
     $this->grandmas=$this->grandmas+1;
+    $this->lag("trip: ".var_export($trains,true)." stop:".var_export($stops,true)." time:".var_export($times,true));
     rpd::$db->select("*")->from('stop_times')->where('stop_id',$goal)->where('trip_id',$trains[count($trains)-1])->where('departure_time>',$times[count($times)-1])->orderby('departure_time','ASC')->get();
     $r=rpd::$db->row_array();
     if ($r){
@@ -57,6 +64,8 @@ class margarita_helper{
       }
       return false;
     }
+    var_dump($trains);
+      
     return false;
   } 
   
